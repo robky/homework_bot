@@ -1,16 +1,18 @@
-...
+import os
+import time
+import telegram
+from dotenv import load_dotenv
+
 
 load_dotenv()
 
-
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
 
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -26,23 +28,19 @@ def send_message(bot, message):
 def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-
     ...
 
 
 def check_response(response):
-
     ...
 
 
 def parse_status(homework):
     homework_name = ...
     homework_status = ...
-
     ...
 
     verdict = ...
-
     ...
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -54,11 +52,11 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-
     ...
 
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    # bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    print(current_timestamp)
 
     ...
 
