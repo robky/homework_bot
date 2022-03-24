@@ -6,6 +6,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+from exceptions import ConstantMissingError
 
 load_dotenv()
 
@@ -23,9 +24,17 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-logging.basicConfig(
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    level=logging.DEBUG)
+log_format = '%(asctime)s [%(levelname)s] %(message)s'
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(logging.Formatter(log_format))
+logger = logging.getLogger(__name__)
+logger.addHandler(stream_handler)
+
+data_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+                    'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+                    'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
+data_var = {}
 
 
 def send_message(bot, message):
@@ -55,12 +64,19 @@ def parse_status(homework):
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
-def check_tokens():
-    ...
+def check_tokens() -> bool:
+    for token_name, value in data_token_const.items():
+        if not value:
+            message = ('Отсутствие обязательных переменных окружения во время '
+                       'запуска бота')
+            logger.critical(message)
+            raise ConstantMissingError(token_name, message)
+    return True
 
 
 def main():
     """Основная логика работы бота."""
+    check_tokens()
     print(get_api_answer())
 
     # bot = telegram.Bot(token=TELEGRAM_TOKEN)
