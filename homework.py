@@ -1,5 +1,8 @@
+import logging
 import os
 import time
+
+import requests
 import telegram
 from dotenv import load_dotenv
 
@@ -20,15 +23,21 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+logging.basicConfig(
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    level=logging.DEBUG)
+
 
 def send_message(bot, message):
     ...
 
 
-def get_api_answer(current_timestamp):
+def get_api_answer(current_timestamp: time = None):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    ...
+    # Делаем GET-запрос к эндпоинту с заголовком headers и параметрами params
+    homework_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    return homework_statuses.json()
 
 
 def check_response(response):
@@ -52,15 +61,12 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    ...
+    print(get_api_answer())
 
     # bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
-    print(current_timestamp)
-
     ...
 
-    while True:
+    while False:
         try:
             response = ...
 
