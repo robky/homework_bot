@@ -34,19 +34,24 @@ logger.addHandler(stream_handler)
 data_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
                     'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
                     'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
-data_var = {}
+data_var = {'timestamp': 0}
 
 
 def send_message(bot, message):
     ...
 
 
-def get_api_answer(current_timestamp: time = None):
-    timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
+def get_api_answer(current_timestamp: time = data_var['timestamp']):
+    # timestamp = current_timestamp or int(time.time())
+    params = {'from_date': current_timestamp}
     # Делаем GET-запрос к эндпоинту с заголовком headers и параметрами params
     homework_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
     return homework_statuses.json()
+    '''
+    Логика: запрашиваем в первый раз с нулевого времени - получаем все работы,
+    берем время последний плюсуем 1, и уже с этого времени следим за 
+    изменениями
+    '''
 
 
 def check_response(response):
@@ -77,6 +82,8 @@ def check_tokens() -> bool:
 def main():
     """Основная логика работы бота."""
     check_tokens()
+
+    #data_var.setdefault('time', 1)
     print(get_api_answer())
 
     # bot = telegram.Bot(token=TELEGRAM_TOKEN)
