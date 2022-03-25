@@ -1,9 +1,9 @@
 import logging
 import os
 import time
+from datetime import datetime
 
 import requests
-import telegram
 from dotenv import load_dotenv
 
 from exceptions import ConstantMissingError
@@ -14,7 +14,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
+RETRY_TIME = 10
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -24,16 +24,30 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-log_format = '%(asctime)s [%(levelname)s] %(message)s'
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.DEBUG)
-stream_handler.setFormatter(logging.Formatter(log_format))
+# Здесь задана глобальная конфигурация для всех логгеров
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
+# А тут установлены настройки логгера для текущего файла - example_for_log.py
 logger = logging.getLogger(__name__)
-logger.addHandler(stream_handler)
+# Устанавливаем уровень, с которого логи будут сохраняться в файл
+logger.setLevel(logging.DEBUG)
+# Указываем обработчик логов
+# handler = logging.StreamHandler()
+# logger.addHandler(handler)
+# Создаем форматер
+# formatter = logging.Formatter(
+#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# )
+# Применяем его к хэндлеру
+# handler.setFormatter(formatter)
 
 data_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
                     'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
                     'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
+NEXT_TIME_SECOND = 5 * 60 * 60 + 1
 data_var = {'timestamp': 0}
 
 
@@ -41,31 +55,28 @@ def send_message(bot, message):
     ...
 
 
-def get_api_answer(current_timestamp: time = data_var['timestamp']):
-    # timestamp = current_timestamp or int(time.time())
-    params = {'from_date': current_timestamp}
+def get_api_answer(timestamp: int) -> dict:
+    params = {'from_date': timestamp}
     # Делаем GET-запрос к эндпоинту с заголовком headers и параметрами params
-    homework_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    try:
+        homework_statuses = requests.get(
+            ENDPOINT,
+            headers=HEADERS,
+            params=params)
+    except Exception as err:
+        logger.error(f'Ошибка эндпоинта -> {err}')
+        return {}
     return homework_statuses.json()
-    '''
-    Логика: запрашиваем в первый раз с нулевого времени - получаем все работы,
-    берем время последний плюсуем 1, и уже с этого времени следим за 
-    изменениями
-    '''
 
 
-def check_response(response):
-    ...
+def check_response(response: dict):
+    return response.get('homeworks', None)
 
 
-def parse_status(homework):
-    homework_name = ...
-    homework_status = ...
-    ...
-
-    verdict = ...
-    ...
-
+def parse_status(homework: dict):
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -81,29 +92,44 @@ def check_tokens() -> bool:
 
 def main():
     """Основная логика работы бота."""
+    logger.info(f'Начало работы')
     check_tokens()
-
-    #data_var.setdefault('time', 1)
-    print(get_api_answer())
+    current_timestamp = 1
 
     # bot = telegram.Bot(token=TELEGRAM_TOKEN)
     ...
 
-    while False:
+    while True:
         try:
-            response = ...
-
-            ...
-
-            current_timestamp = ...
+            if not current_timestamp:
+                response = get_api_answer(current_timestamp)
+                if response:
+                    homeworks = check_response(response)
+                    if homeworks:
+                        last_time = homeworks[0].get('date_updated')
+                        d = datetime.strptime(last_time, "%Y-%m-%dT%H:%M:%SZ")
+                        current_timestamp = int(
+                            time.mktime(d.timetuple())) + NEXT_TIME_SECOND
+                    else:
+                        current_timestamp = response.get('current_date')
+                    logger.info(f'Начальная точка '
+                                f'timestamp={current_timestamp}')
+            response = get_api_answer(current_timestamp)
+            if response:
+                current_timestamp = response.get('current_date')
+                homeworks = check_response(response)
+                if homeworks:
+                    for homework in homeworks:
+                        message = parse_status(homework)
+                        logger.info(message)
+                else:
+                    logger.info(f'Cобытий нет, current_timestamp={current_timestamp}')
             time.sleep(RETRY_TIME)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            ...
+            logger.error(message)
             time.sleep(RETRY_TIME)
-        else:
-            ...
 
 
 if __name__ == '__main__':
