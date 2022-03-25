@@ -1,12 +1,12 @@
-import logging
 import os
 import time
 from datetime import datetime
-
+from telegram import Bot
 import requests
 from dotenv import load_dotenv
 
 from exceptions import ConstantMissingError
+from log_conf import logger
 
 load_dotenv()
 
@@ -23,26 +23,6 @@ HOMEWORK_STATUSES = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
-
-# Здесь задана глобальная конфигурация для всех логгеров
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] %(message)s'
-)
-
-# А тут установлены настройки логгера для текущего файла - example_for_log.py
-logger = logging.getLogger(__name__)
-# Устанавливаем уровень, с которого логи будут сохраняться в файл
-logger.setLevel(logging.DEBUG)
-# Указываем обработчик логов
-# handler = logging.StreamHandler()
-# logger.addHandler(handler)
-# Создаем форматер
-# formatter = logging.Formatter(
-#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-# )
-# Применяем его к хэндлеру
-# handler.setFormatter(formatter)
 
 data_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
                     'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
@@ -96,7 +76,7 @@ def main():
     check_tokens()
     current_timestamp = 1
 
-    # bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    bot = Bot(token=TELEGRAM_TOKEN)
     ...
 
     while True:
@@ -123,7 +103,8 @@ def main():
                         message = parse_status(homework)
                         logger.info(message)
                 else:
-                    logger.info(f'Cобытий нет, current_timestamp={current_timestamp}')
+                    logger.info(f'Cобытий нет, '
+                                f'current_timestamp={current_timestamp}')
             time.sleep(RETRY_TIME)
 
         except Exception as error:
