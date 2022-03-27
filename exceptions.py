@@ -9,7 +9,7 @@ class ConstantMissingError(Exception):
 
 
 class EndpointStatusError(Exception):
-    def __init__(self, status: str, message: str = 'Endpoint status error'):
+    def __init__(self, status: int, message: str = 'Endpoint status error'):
         self.const = status
         self.message = message
         super().__init__(self.message)

@@ -45,7 +45,7 @@ LOGGING_CONFIG = {
         'my_logger': {
             'handlers': [
                 'stream_handler',
-                'telegram_handler'
+                # 'telegram_handler'
             ],
             'level': 'DEBUG',
             'propagate': True
