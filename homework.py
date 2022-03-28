@@ -89,7 +89,7 @@ def first_work(response) -> str:
 
 
 def parse_status(homework: dict) -> str:
-    """Получить информацию статуса работы"""
+    """Получить информацию статуса работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -111,7 +111,7 @@ def check_tokens() -> bool:
 
 
 def get_bot() -> Bot:
-    """Получить экземпляр Bot"""
+    """Получить экземпляр Bot."""
     try:
         bot = Bot(token=TELEGRAM_TOKEN)
     except InvalidToken:
