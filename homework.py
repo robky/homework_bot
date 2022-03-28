@@ -10,7 +10,6 @@ from telegram import Bot
 from telegram.error import InvalidToken, Unauthorized
 from typing import Union
 
-
 load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -28,6 +27,7 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot: Bot, message: str) -> None:
+    """Отправить сообщение в телеграмм."""
     try:
         bot.send_message(
             TELEGRAM_CHAT_ID,
@@ -43,6 +43,7 @@ def send_message(bot: Bot, message: str) -> None:
 
 
 def get_api_answer(timestamp: int) -> Union[dict, bool]:
+    """Получить информацию от endpoint на указанную дату."""
     params = {'from_date': timestamp}
     try:
         homework_statuses = requests.get(
@@ -60,6 +61,7 @@ def get_api_answer(timestamp: int) -> Union[dict, bool]:
 
 
 def check_response(response: Union[list, dict]) -> list:
+    """Выбрать значения 'homeworks' из полученных данных."""
     key = 'homeworks'
     if isinstance(response, list):
         response = response[0]
@@ -71,15 +73,23 @@ def check_response(response: Union[list, dict]) -> list:
     return key_value
 
 
-def parse_first(homework: dict) -> str:
-    homework_name = homework.get('homework_name')
-    homework_status = homework.get('status')
-    date = homework.get('date_updated')
-    verdict = HOMEWORK_STATUSES[homework_status]
-    return f'Последнее событие: {date}, работы "{homework_name}". {verdict}'
+def first_work(response) -> str:
+    """Получить информацию по последней работе."""
+    homeworks = check_response(response)
+    if homeworks:
+        homework_name = homeworks[0].get('homework_name')
+        homework_status = homeworks[0].get('status')
+        date = homeworks[0].get('date_updated')
+        verdict = HOMEWORK_STATUSES[homework_status]
+        message = (f'Последнее событие: {date}, работы "{homework_name}". '
+                   f'{verdict}')
+    else:
+        message = 'Нет информации по предыдущим работам'
+    return message
 
 
 def parse_status(homework: dict) -> str:
+    """Получить информацию статуса работы"""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -87,6 +97,7 @@ def parse_status(homework: dict) -> str:
 
 
 def check_tokens() -> bool:
+    """Проверить наличие необходимых значений."""
     need_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
                         'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
                         'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
@@ -99,12 +110,8 @@ def check_tokens() -> bool:
     return True
 
 
-def main():
-    """Основная логика работы бота."""
-    if not check_tokens():
-        raise ConstantMissingError()
-
-    current_timestamp = 0
+def get_bot() -> Bot:
+    """Получить экземпляр Bot"""
     try:
         bot = Bot(token=TELEGRAM_TOKEN)
     except InvalidToken:
@@ -113,22 +120,28 @@ def main():
     except Exception as err:
         logger.error(f'Ошибка бота -> {err}')
         raise SystemExit(1)
+    return bot
 
+
+def main():
+    """Основная логика работы бота."""
+    if not check_tokens():
+        raise ConstantMissingError()
+
+    bot = get_bot()
     message = 'Начало работы'
     send_message(bot, message)
 
+    current_timestamp = 0
     while True:
         try:
             if not current_timestamp:
                 response = get_api_answer(current_timestamp)
                 if response:
-                    homeworks = check_response(response)
-                    if homeworks:
-                        message = parse_first(homeworks[0])
-                        current_timestamp = response.get('current_date')
-                    else:
-                        message = 'Нет информации по предыдущим работам'
+                    message = first_work(response)
                     send_message(bot, message)
+                    current_timestamp = response.get('current_date')
+                    time.sleep(RETRY_TIME)
 
             response = get_api_answer(current_timestamp)
             if response:
