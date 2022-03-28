@@ -1,3 +1,4 @@
+import logging
 import os
 import requests
 import time
@@ -10,6 +11,7 @@ from telegram import Bot
 from telegram.error import InvalidToken, Unauthorized
 from typing import Union
 
+logging.getLevelName("debug")
 load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
