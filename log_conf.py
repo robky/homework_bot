@@ -1,15 +1,10 @@
 import logging.config
 import os
-
 from dotenv import load_dotenv
-from log_handler import TelegramHandler
 
 load_dotenv()
-
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-ERROR_LOG_FILENAME = 'errors.log'
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -45,7 +40,7 @@ LOGGING_CONFIG = {
         'my_logger': {
             'handlers': [
                 'stream_handler',
-                # 'telegram_handler'
+                'telegram_handler'
             ],
             'level': 'DEBUG',
             'propagate': True

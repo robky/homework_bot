@@ -7,9 +7,10 @@ class TelegramHandler(Handler):
         super().__init__()
         self.token = token
         self.chat_id = chat_id
+        self.last_error = ''
 
     def emit(self, record: LogRecord):
-        if self.token and self.chat_id:
+        if record.msg != self.last_error and self.token and self.chat_id:
             try:
                 bot = Bot(token=self.token)
                 bot.send_message(
@@ -18,3 +19,6 @@ class TelegramHandler(Handler):
                 )
             except Exception as err:
                 print(f'Bot не смог отправить сообщение -> {err}')
+            else:
+                self.last_error = record.msg
+                print(f'Бот отправил сообщение "{self.last_error}"')
