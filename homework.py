@@ -3,8 +3,7 @@ import os
 import requests
 import time
 from dotenv import load_dotenv
-from exceptions import (DictKeyDoesNotExistError, EndpointStatusError,
-                        ConstantMissingError)
+from exceptions import ConstantMissingError, EndpointStatusError
 from http import HTTPStatus
 from log_conf import logger
 from telegram import Bot
@@ -44,7 +43,7 @@ def send_message(bot: Bot, message: str) -> None:
         logger.info(f'Бот отправил сообщение "{message}"')
 
 
-def get_api_answer(timestamp: int) -> Union[dict, bool]:
+def get_api_answer(timestamp: int) -> dict:
     """Получить информацию от endpoint на указанную дату."""
     params = {'from_date': timestamp}
     try:
@@ -52,9 +51,15 @@ def get_api_answer(timestamp: int) -> Union[dict, bool]:
             ENDPOINT,
             headers=HEADERS,
             params=params)
-    except Exception as err:
-        logger.error(f'Ошибка эндпоинта -> {err}')
-        return False
+    except Exception as error:
+        logger.error(f'Ошибка эндпоинта -> {error}')
+        raise ConnectionError(
+            (
+                f'Во время подключения к эндпоинту {ENDPOINT} произошла'
+                f' непредвиденная ошибка: {error}'
+                f' params = {params}'
+            )
+        ) from error
     status = homework_statuses.status_code
     if status == HTTPStatus.OK:
         return homework_statuses.json()
@@ -69,7 +74,7 @@ def check_response(response: Union[list, dict]) -> list:
         response = response[0]
     key_value = response.get(key)
     if key_value is None:
-        raise DictKeyDoesNotExistError(key)
+        raise KeyError(key)
     if not isinstance(key_value, list):
         key_value = []
     return key_value
@@ -100,16 +105,7 @@ def parse_status(homework: dict) -> str:
 
 def check_tokens() -> bool:
     """Проверить наличие необходимых значений."""
-    need_token_const = {'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-                        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-                        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
-    for token_name, value in need_token_const.items():
-        if not value:
-            message = (f"Отсутствует обязательная переменная окружения: "
-                       f"'{token_name}' Программа принудительно остановлена.")
-            logger.critical(message)
-            return False
-    return True
+    return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
 
 
 def get_bot() -> Bot:
@@ -128,7 +124,10 @@ def get_bot() -> Bot:
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        raise ConstantMissingError()
+        message = ('Отсутствует обязательная переменная окружения. '
+                   'Программа принудительно остановлена.')
+        logger.critical(message)
+        raise ConstantMissingError('Отсутствует обязательная переменная')
 
     bot = get_bot()
     message = 'Начало работы'
@@ -143,7 +142,6 @@ def main():
                     message = first_work(response)
                     send_message(bot, message)
                     current_timestamp = response.get('current_date')
-                    time.sleep(RETRY_TIME)
 
             response = get_api_answer(current_timestamp)
             if response:
@@ -155,11 +153,11 @@ def main():
                         send_message(bot, message)
                 else:
                     logger.debug('Отсутствие в ответе новых статусов')
-            time.sleep(RETRY_TIME)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
+        finally:
             time.sleep(RETRY_TIME)
 
 
