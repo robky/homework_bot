@@ -80,21 +80,6 @@ def check_response(response: Union[list, dict]) -> list:
     return key_value
 
 
-def first_work(response) -> str:
-    """Получить информацию по последней работе."""
-    homeworks = check_response(response)
-    if homeworks:
-        homework_name = homeworks[0].get('homework_name')
-        homework_status = homeworks[0].get('status')
-        date = homeworks[0].get('date_updated')
-        verdict = HOMEWORK_STATUSES[homework_status]
-        message = (f'Последнее событие: {date}, работы "{homework_name}". '
-                   f'{verdict}')
-    else:
-        message = 'Нет информации по предыдущим работам'
-    return message
-
-
 def parse_status(homework: dict) -> str:
     """Получить информацию статуса работы."""
     homework_name = homework.get('homework_name')
@@ -133,19 +118,13 @@ def main():
     message = 'Начало работы'
     send_message(bot, message)
 
-    current_timestamp = 0
+    current_timestamp = int(time.time())
     while True:
         try:
-            if not current_timestamp:
-                response = get_api_answer(current_timestamp)
-                if response:
-                    message = first_work(response)
-                    send_message(bot, message)
-                    current_timestamp = response.get('current_date')
-
             response = get_api_answer(current_timestamp)
             if response:
-                current_timestamp = response.get('current_date')
+                current_timestamp = response.get('current_date',
+                                                 current_timestamp)
                 homeworks = check_response(response)
                 if homeworks:
                     for homework in homeworks:
